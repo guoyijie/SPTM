@@ -24,9 +24,9 @@ def sieve(shortcuts, top_number):
   probabilities = shortcuts[:, 0]
   n = shortcuts.shape[0]
   threshold = top_number_to_threshold(n, top_number, probabilities)
-  print 'Confidence threshold for top', top_number, 'out of', n, ':', threshold
+  print('Confidence threshold for top', top_number, 'out of', n, ':', threshold)
   sieved_shortcut_indexes = []
-  for index in xrange(n):
+  for index in range(n):
     if probabilities[index] >= threshold:
       sieved_shortcut_indexes.append(index)
   return shortcuts[sieved_shortcut_indexes]
@@ -34,7 +34,8 @@ def sieve(shortcuts, top_number):
 class InputProcessor:
   def __init__(self):
     if EDGE_NETWORK in [SIAMESE_NETWORK, JOINT_NETWORK]:
-      self.edge_model = load_keras_model(2, 2, EDGE_MODEL_WEIGHTS_PATH, EDGE_NETWORK)
+      #self.edge_model = load_keras_model(2, 2, EDGE_MODEL_WEIGHTS_PATH, EDGE_NETWORK)
+      self.edge_model = load_keras_model(2, 2, '../../experiments/demo_R/models/model.010000.h5', EDGE_NETWORK)
       if EDGE_NETWORK == SIAMESE_NETWORK:
         self.siamese = True
         self.bottom_network = resnet.ResnetBuilder.build_bottom_network(self.edge_model, (NET_CHANNELS, NET_HEIGHT, NET_WIDTH))
@@ -88,7 +89,7 @@ class InputProcessor:
     else:
       memory_codes = self.bottom_network.predict(np.array(keyframes))
       list_to_predict = []
-      for index in xrange(len(keyframes)):
+      for index in range(len(keyframes)):
         x = np.concatenate((memory_codes[0], memory_codes[index]), axis=0)
         list_to_predict.append(x)
       self.tensor_to_predict = np.array(list_to_predict)
@@ -116,7 +117,7 @@ class InputProcessor:
                                               batch_size=TESTING_BATCH_SIZE)
     else:
       input_code = np.squeeze(self.bottom_network.predict(np.expand_dims(input, axis=0), batch_size=1))
-      for index in xrange(self.tensor_to_predict.shape[0]):
+      for index in range(self.tensor_to_predict.shape[0]):
         self.tensor_to_predict[index][0:(input_code.shape[0])] = input_code
       probabilities = self.top_network.predict(self.tensor_to_predict,
                                                batch_size=TESTING_BATCH_SIZE)
@@ -159,15 +160,15 @@ class SPTM:
     self.graph.add_edge(second, first, {'weight' : 1000000000})
 
   def smooth_shortcuts_matrix(self, shortcuts_matrix, keyframe_coordinates):
-    for first in xrange(len(shortcuts_matrix)):
-      for second in xrange(first + 1, len(shortcuts_matrix)):
+    for first in range(len(shortcuts_matrix)):
+      for second in range(first + 1, len(shortcuts_matrix)):
         shortcuts_matrix[first][second] = (shortcuts_matrix[first][second] + 
                                            shortcuts_matrix[second][first]) / 2.0
     shortcuts = []
-    for first in xrange(len(shortcuts_matrix)):
-      for second in xrange(first + 1 + MIN_SHORTCUT_DISTANCE, len(shortcuts_matrix)):
+    for first in range(len(shortcuts_matrix)):
+      for second in range(first + 1 + MIN_SHORTCUT_DISTANCE, len(shortcuts_matrix)):
         values = []
-        for shift in xrange(-SHORTCUT_WINDOW, SHORTCUT_WINDOW + 1):
+        for shift in range(-SHORTCUT_WINDOW, SHORTCUT_WINDOW + 1):
           first_shifted = first + shift
           second_shifted = second + shift
           if first_shifted < len(shortcuts_matrix) and second_shifted < len(shortcuts_matrix) and first_shifted >= 0 and second_shifted >= 0:
@@ -182,10 +183,10 @@ class SPTM:
     self.set_memory_buffer(keyframes)
     if not os.path.isfile(self.shortcuts_cache_file):
       shortcuts_matrix = []
-      for first in xrange(len(keyframes)):
+      for first in range(len(keyframes)):
         probabilities = self.predict_single_input(keyframes[first])
         shortcuts_matrix.append(probabilities)
-        print 'Finished:', float(first * 100) / float(len(keyframes)), '%'
+        print('Finished:', float(first * 100) / float(len(keyframes)), '%')
       shortcuts = self.smooth_shortcuts_matrix(shortcuts_matrix, keyframe_coordinates)
       shortcuts = sieve(shortcuts, LARGE_SHORTCUTS_NUMBER)
       np.save(self.shortcuts_cache_file, shortcuts)
@@ -207,11 +208,11 @@ class SPTM:
     memory_size = self.get_memory_size()
     self.graph = nx.Graph()
     self.graph.add_nodes_from(range(memory_size))
-    for first in xrange(memory_size - 1):
+    for first in range(memory_size - 1):
       # self.add_double_forward_biased_edge(first, first + 1)
       self.add_double_sided_edge(first, first + 1)
     self.compute_shortcuts(keyframes, keyframe_coordinates)
-    for index in xrange(self.get_number_of_shortcuts()):
+    for index in range(self.get_number_of_shortcuts()):
       edge = self.get_shortcut(index)
       first, second = edge
       assert abs(first - second) > MIN_SHORTCUT_DISTANCE
@@ -226,11 +227,11 @@ class SPTM:
   def set_goal(self, goal_frame, real_goal_coordinates, keyframe_coordinates):
     self.step = 0
     best_index, probabilities, nns = self.find_knn_median_threshold(goal_frame, NUMBER_OF_NEAREST_NEIGHBOURS, 0.0)
-    print nns
-    print [probabilities[nn] for nn in nns]
-    print [get_distance(real_goal_coordinates, keyframe_coordinates[nn]) for nn in nns]
-    print [keyframe_coordinates[nn] for nn in nns]
-    print real_goal_coordinates
+    print(nns)
+    print([probabilities[nn] for nn in nns])
+    print([get_distance(real_goal_coordinates, keyframe_coordinates[nn]) for nn in nns])
+    print([keyframe_coordinates[nn] for nn in nns])
+    print(real_goal_coordinates)
     best_probability = 1.0
     if best_index is None:
       best_index, best_probability, _ = self.find_nn(goal_frame)
@@ -240,7 +241,7 @@ class SPTM:
     edge = (best_index, goal_index)
     self.add_double_sided_edge(*edge)
     self.append_to_memory_buffer(goal_frame)
-    print 'Real goal distance:', get_distance(real_goal_coordinates, keyframe_coordinates[best_index])
+    print('Real goal distance:', get_distance(real_goal_coordinates, keyframe_coordinates[best_index]))
     self.smoothed_memory = None
     self.last_nn = None
     return best_index, best_probability
@@ -248,8 +249,8 @@ class SPTM:
   def compute_shortest_paths(self, graph_goal):
     self.shortest_paths = nx.shortest_path(self.graph, target=graph_goal, weight='weight')
     self.shortest_distances = [len(value) - 1 for value in self.shortest_paths.values()]
-    print 'Mean shortest_distances to goal:', mean(self.shortest_distances)
-    print 'Median shortest_distances to goal:', median(self.shortest_distances)
+    print('Mean shortest_distances to goal:', mean(self.shortest_distances))
+    print('Median shortest_distances to goal:', median(self.shortest_distances))
 
   def get_shortest_paths_and_distances(self):
     return self.shortest_paths, self.shortest_distances
@@ -281,7 +282,7 @@ class SPTM:
     nns = self._find_neighbours_by_threshold(final_threshold, probabilities)
     nns.sort()
     if nns:
-      nn = nns[len(nns) / 2]
+      nn = nns[int(len(nns) / 2)]
       return nn, probabilities, nns
     else:
       return None, probabilities, nns
@@ -315,7 +316,8 @@ class SPTM:
 
   def select_IRG_on_shortest_path(self, nn, probabilities):
     shortest_path = self.shortest_paths[nn]
-    print 'Current shortest path:', len(shortest_path) - 1
+    print('Current shortest path:', len(shortest_path) - 1)
+    self.plot_shortest_path = False
     if self.plot_shortest_path:
       plotter = TrajectoryPlotter(os.path.join(EVALUATION_PATH, 'shortest_path%d_%d.pdf' % (self.trial_index, self.step)), *TEST_SETUPS[self.environment].box)
       self.step += 1
@@ -332,7 +334,7 @@ class SPTM:
       valid_min_look_ahead = min(MIN_LOOK_AHEAD, upper_limit)
       valid_max_look_ahead = min(MAX_LOOK_AHEAD, upper_limit)
       best_look_ahead = valid_min_look_ahead
-      for look_ahead in xrange(valid_min_look_ahead,
+      for look_ahead in range(valid_min_look_ahead,
                                valid_max_look_ahead + 1):
         index = shortest_path[look_ahead]
         if probabilities[index] >= INTERMEDIATE_REACHABLE_GOAL_THRESHOLD:
@@ -343,14 +345,14 @@ class SPTM:
         if probabilities[index] >= INTERMEDIATE_REACHABLE_GOAL_THRESHOLD:
           best_look_ahead = look_ahead
     IRG = shortest_path[best_look_ahead]
-    print 'Found IRG:', IRG
+    print('Found IRG:', IRG)
     return IRG
 
   def find_intermediate_reachable_goal(self, input, current_coordinates, keyframe_coordinates):
     nn, probabilities = self.find_smoothed_nn(input)
     self.last_nn = nn
     if nn is None:
-      print 'Found no IRG!'
+      print('Found no IRG!')
       return None, None
     else:
       return self.select_IRG_on_shortest_path(nn, probabilities), nn

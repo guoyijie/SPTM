@@ -1,26 +1,25 @@
 from train_setup import *
 
+
+replay_buffer = np.load('../../random_data_100K.npy', allow_pickle=True)
+
+episode_xs = []
+episode_ys = []
+for i in range(len(replay_buffer)):
+  print('traj', i)
+  episode_x = [x[1] for x in replay_buffer[i]]
+  episode_y = [x[2] for x in replay_buffer[i]]
+  if len(episode_x)>10 and episode_x[0] is not None:
+    episode_xs.append(episode_x)
+    episode_ys.append(episode_y) 
+print('Load %d episodes!'%len(episode_xs))
+
 def data_generator():
-  game = doom_navigation_setup(DEFAULT_RANDOM_SEED, TRAIN_WAD)
-  game.set_doom_map(MAP_NAME_TEMPLATE % random.randint(MIN_RANDOM_TEXTURE_MAP_INDEX,
-                                                       MAX_RANDOM_TEXTURE_MAP_INDEX))
-  game.new_episode()
-  yield_count = 0
   while True:
-    if yield_count >= ACTION_MAX_YIELD_COUNT_BEFORE_RESTART:
-      game.set_doom_map(MAP_NAME_TEMPLATE % random.randint(MIN_RANDOM_TEXTURE_MAP_INDEX,
-                                                           MAX_RANDOM_TEXTURE_MAP_INDEX))
-      game.new_episode()
-      yield_count = 0
-    x = []
-    y = []
-    for _ in xrange(MAX_CONTINUOUS_PLAY):
-      current_x = game.get_state().screen_buffer.transpose(VIZDOOM_TO_TF)
-      action_index = random.randint(0, ACTION_CLASSES - 1)
-      game_make_action_wrapper(game, ACTIONS_LIST[action_index], TRAIN_REPEAT)
-      current_y = action_index
-      x.append(current_x)
-      y.append(current_y)
+    idx = np.random.randint(len(episode_xs))
+    x = episode_xs[idx]
+    y = episode_ys[idx]
+    MAX_CONTINUOUS_PLAY = len(x)
     first_second_pairs = []
     current_first = 0
     while True:
@@ -43,7 +42,6 @@ def data_generator():
       x_result.append(np.concatenate((previous_x, current_x, future_x), axis=2))
       y_result.append(current_y)
       if len(x_result) == BATCH_SIZE:
-        yield_count += 1
         yield (np.array(x_result),
                keras.utils.to_categorical(np.array(y_result),
                                           num_classes=ACTION_CLASSES))
@@ -51,6 +49,7 @@ def data_generator():
         y_result = []
 
 if __name__ == '__main__':
+  EXPERIMENT_OUTPUT_FOLDER = 'beenchwood1M_R'
   logs_path, current_model_path = setup_training_paths(EXPERIMENT_OUTPUT_FOLDER)
   model = ACTION_NETWORK(((1 + ACTION_STATE_ENCODING_FRAMES) * NET_CHANNELS, NET_HEIGHT, NET_WIDTH), ACTION_CLASSES)
   adam = keras.optimizers.Adam(lr=LEARNING_RATE, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)

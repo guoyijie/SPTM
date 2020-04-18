@@ -168,7 +168,8 @@ def _handle_dim_ordering():
     global ROW_AXIS
     global COL_AXIS
     global CHANNEL_AXIS
-    if K.image_dim_ordering() == 'tf':
+    #if K.image_dim_ordering() == 'tf':
+    if K.common.image_dim_ordering() == 'tf':
         ROW_AXIS = 1
         COL_AXIS = 2
         CHANNEL_AXIS = 3
@@ -192,7 +193,7 @@ def _bn_relu_for_dense(input):
 
 def _top_network(input):
     raw_result = _bn_relu_for_dense(input)
-    for _ in xrange(TOP_HIDDEN):
+    for _ in range(TOP_HIDDEN):
         raw_result = Dense(units=NUM_EMBEDDING, kernel_initializer='he_normal')(raw_result)
         raw_result = _bn_relu_for_dense(raw_result)
     output = Dense(units=2, activation='softmax', kernel_initializer='he_normal')(raw_result)
@@ -217,7 +218,8 @@ class ResnetBuilder(object):
             raise Exception("Input shape should be a tuple (nb_channels, nb_rows, nb_cols)")
 
         # Permute dimension order if necessary
-        if K.image_dim_ordering() == 'tf':
+        #if K.image_dim_ordering() == 'tf':
+        if K.common.image_dim_ordering() == 'tf':
             input_shape = (input_shape[1], input_shape[2], input_shape[0])
 
         # Load function from str if needed.
@@ -275,7 +277,7 @@ class ResnetBuilder(object):
         number_of_top_layers = 3 + TOP_HIDDEN * 3
         input = Input(shape=(2 * NUM_EMBEDDING,))
         output = edge_model.layers[-number_of_top_layers](input) #_top_network(input)
-        for index in xrange(-number_of_top_layers + 1, 0):
+        for index in range(-number_of_top_layers + 1, 0):
             output = edge_model.layers[index](output)
         return Model(inputs=input, outputs=output)
 

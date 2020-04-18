@@ -1,5 +1,6 @@
 import sys
 sys.path.append('..')
+sys.path.append('../common/')
 from common import *
 
 # limit memory usage

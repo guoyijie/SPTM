@@ -137,7 +137,7 @@ class Navigator:
       if self.check_frozen_with_repeat():
         break
       action_function(*action_function_arguments)
-      self.record_all_during_repeat(self.keyframes[self.target_index])
+      #self.record_all_during_repeat(self.keyframes[self.target_index])
 
   def log_navigation_state(self):
     self.screens.append(self.game.get_state().screen_buffer.transpose(VIZDOOM_TO_TF))

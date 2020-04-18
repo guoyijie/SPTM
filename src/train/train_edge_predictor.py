@@ -1,20 +1,22 @@
 from train_setup import *
 
+replay_buffer = np.load('../../random_data_100K.npy', allow_pickle=True)
+
+episodes = []
+for i in range(len(replay_buffer)):
+  print('traj', i)
+  episode = [x[1] for x in replay_buffer[i]]
+  if len(episode)>10 and episode[0] is not None:
+    episodes.append(episode)
+print('Load %d episodes!'%len(episodes))
+
 def data_generator():
-  game = doom_navigation_setup(DEFAULT_RANDOM_SEED, TRAIN_WAD)
   while True:
     x_result = []
     y_result = []
-    for episode in xrange(EDGE_EPISODES):
-      game.set_doom_map(MAP_NAME_TEMPLATE % random.randint(MIN_RANDOM_TEXTURE_MAP_INDEX,
-                                                           MAX_RANDOM_TEXTURE_MAP_INDEX))
-      game.new_episode()
-      x = []
-      for _ in xrange(MAX_CONTINUOUS_PLAY):
-        current_x = game.get_state().screen_buffer.transpose(VIZDOOM_TO_TF)
-        action_index = random.randint(0, ACTION_CLASSES - 1)
-        game_make_action_wrapper(game, ACTIONS_LIST[action_index], TRAIN_REPEAT)
-        x.append(current_x)
+    for episode in range(EDGE_EPISODES):
+      x = episodes[np.random.randint(len(episodes))] 
+      MAX_CONTINUOUS_PLAY = len(x)
       first_second_label = []
       current_first = 0
       while True:
@@ -48,7 +50,8 @@ def data_generator():
               current_second = current_second_before
             else:
               current_second = current_second_after
-        first_second_label.append((current_first, current_second, y))
+        if current_first is not None and current_second is not None:
+          first_second_label.append((current_first, current_second, y))
         current_first = second + 1
       random.shuffle(first_second_label)
       for first, second, y in first_second_label:
@@ -57,8 +60,8 @@ def data_generator():
         current_y = y
         x_result.append(np.concatenate((current_x, future_x), axis=2))
         y_result.append(current_y)
-    number_of_batches = len(x_result) / BATCH_SIZE
-    for batch_index in xrange(number_of_batches):
+    number_of_batches = int(len(x_result) / BATCH_SIZE)
+    for batch_index in range(number_of_batches):
       from_index = batch_index * BATCH_SIZE
       to_index = (batch_index + 1) * BATCH_SIZE
       yield (np.array(x_result[from_index:to_index]),
@@ -66,6 +69,7 @@ def data_generator():
                                         num_classes=EDGE_CLASSES))
 
 if __name__ == '__main__':
+  EXPERIMENT_OUTPUT_FOLDER = 'beenchwood1M_L'
   logs_path, current_model_path = setup_training_paths(EXPERIMENT_OUTPUT_FOLDER)
   model = EDGE_NETWORK(((1 + EDGE_STATE_ENCODING_FRAMES) * NET_CHANNELS, NET_HEIGHT, NET_WIDTH), EDGE_CLASSES)
   adam = keras.optimizers.Adam(lr=LEARNING_RATE, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)

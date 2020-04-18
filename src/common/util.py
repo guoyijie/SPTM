@@ -1,9 +1,8 @@
 #!/usr/bin/env python
-import cPickle
+import pickle
 import cv2
 import numpy as np
 import h5py
-from vizdoom import *
 import math
 import os
 import os.path
@@ -16,7 +15,6 @@ from video_writer import *
 
 import cv2
 import os
-import cPickle
 import numpy as np
 np.random.seed(DEFAULT_RANDOM_SEED)
 import keras
@@ -26,9 +24,9 @@ random.seed(DEFAULT_RANDOM_SEED)
 def mean(numbers):
   return float(sum(numbers)) / max(len(numbers), 1)
 
-def wait_idle(game, wait_idle_tics=WAIT_IDLE_TICS):
-  if wait_idle_tics > 0:
-    game.make_action(STAY_IDLE, wait_idle_tics)
+#def wait_idle(game, wait_idle_tics=WAIT_IDLE_TICS):
+#  if wait_idle_tics > 0:
+#    game.make_action(STAY_IDLE, wait_idle_tics)
 
 def game_make_action_wrapper(game, action, repeat):
   game.make_action(action, repeat)
@@ -76,7 +74,7 @@ class StateRecorder():
             self.actions,
             self.rewards)
     with open(NAVIGATION_RECORDING_PATH, 'wb') as output_file:  
-      cPickle.dump(data, output_file)
+      pickle.dump(data, output_file)
 
 def downsample(input, factor):
   for _ in xrange(factor):
